@@ -286,7 +286,7 @@ col1, col2 = st.columns([3, 1])
 with col1:
     topic = st.text_input(
         "🔍 Enter your research topic:",
-        value="Climate change impacts on biodiversity",
+        value="",
         help="Be specific for better results"
     )
 
@@ -391,18 +391,18 @@ if st.session_state.research_data:
         
         # Export options
         col1, col2, col3 = st.columns([1, 1, 4])
-        with col1:
-            if st.button("📥 Download Report"):
-                st.download_button(
-                    label="Download as Markdown",
-                    data=research_data.report,
-                    file_name=f"research_report_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
-                    mime="text/markdown"
-                )
+        # with col1:
+        #     if st.button("📥 Download Report"):
+        #         st.download_button(
+        #             label="Download as Markdown",
+        #             data=research_data.report,
+        #             file_name=f"research_report_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+        #             mime="text/markdown"
+        #         )
         
-        with col2:
-            if st.button("📋 Copy to Clipboard"):
-                st.code(research_data.report, language="markdown")
+        # with col2:
+        #     if st.button("📋 Copy to Clipboard"):
+        #         st.code(research_data.report, language="markdown")
         
         # Display report
         st.markdown(research_data.report, unsafe_allow_html=True)
