@@ -35,38 +35,6 @@ Flow
 
 ---
 
-## 🏗️ System Architecture
-
-```mermaid
-graph TB
-    A[Learner Data Input] --> B[Frontend Upload UI]
-    B --> C[Node.js Backend API]
-    C --> D[Python FastAPI Multi-Agent Pipeline]
-    D --> E[MongoDB Storage]
-    E --> F[Frontend Dashboard Visualization]
-    
-    subgraph "Multi-Agent Pipeline"
-        D1[Skill Signal Aggregator]
-        D2[Industry Role Analyzer RAG]
-        D3[Deficiency Classifier]
-        D4[Remediation Planner]
-        D5[Progress Tracker]
-    end
-    
-    D --> D1 --> D2 --> D3 --> D4 --> D5
-```
-
-### 🔧 Technology Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | React 18+, Tailwind CSS, Recharts, Vite |
-| **Backend** | Node.js/Express, Python FastAPI |
-| **AI/ML** | RAG (Retrieval-Augmented Generation), Multi-Agent Systems |
-| **Database** | MongoDB with structured analytics schema |
-| **Visualization** | Interactive charts, radar plots, progress timelines |
-
----
 
 ## 🤖 Multi-Agent Pipeline Deep Dive
 
