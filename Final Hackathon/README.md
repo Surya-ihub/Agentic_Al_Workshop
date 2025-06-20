@@ -20,21 +20,25 @@ Flow
 - **Real-time Job Market Integration** with live industry data benchmarking  
 - **Dynamic Skill Graph Generation** for visual competency mapping
 - **Intelligent Gap Prioritization** based on market demand and career impact
+- **LLM-Generated Micro-Learning Modules** for every gap or weak area
+- **Each module includes a 'Learn More' link** to a top real-world resource (Tavily/Google fallback)
+- **Backend-first progress tracking** and analytics (no localStorage)
 
 ### 📊 Advanced Analytics & Visualization
 - **Interactive Skill Radar Charts** showing concept-level proficiency
 - **Comprehensive Deficiency Dashboards** with urgency and impact metrics
 - **Timeline-Based Remediation Planning** with progress tracking
 - **Persistent Data Storage** for longitudinal analysis and reporting
+- **Version history and rollback tracking** for skill evolution
 
 ### 🎯 Personalized Learning Pathways
-- **Micro-Learning Modules** (all under 20 minutes)
+- **Micro-Learning Modules** (all under 20 minutes, LLM-generated, actionable)
 - **Career Alignment Timelines** with clear ETA projections
 - **Adaptive Progress Tracking** that evolves with learner improvement
 - **LMS Integration Ready** for seamless educational workflow
+- **Mark as Complete** endpoint for backend-tracked progress
 
 ---
-
 
 ## 🤖 Multi-Agent Pipeline Deep Dive
 
@@ -59,18 +63,22 @@ Flow
 ### 4. 🗺️ Remediation Planner Agent
 - **Purpose**: Creates personalized learning pathways
 - **Features**:
-  - Maps gaps to specific learning modules
+  - Maps gaps and weak skills to specific, LLM-generated learning modules
+  - Each module includes a 15-min actionable summary and a 'Learn More' link (Tavily/Google)
   - Optimizes for time efficiency (<20min modules)
-  - Provides career readiness timelines
+  - Provides career readiness timelines (ETA)
   - Suggests learning sequences and dependencies
+  - Ensures at least 80% of gaps are mapped to actionable content
+  - Robust error handling and graceful fallback for external API timeouts
 
 ### 5. 📈 Skill Progress Tracker Agent
 - **Purpose**: Continuous monitoring and adaptation
 - **Capabilities**:
   - Real-time progress updates
-  - Skill graph evolution tracking
+  - Skill graph evolution tracking (with version history)
   - Remediation effectiveness analysis
   - Predictive career readiness scoring
+  - Tracks improvements and regressions at concept-level granularity
 
 ---
 
@@ -102,14 +110,15 @@ Flow
     impactAssessment: Object
   },
   remediationPlan: {
-    modules: Array,
+    modules: Array, // Each module includes a 'learn_more_url' field
     timeline: Object,
     estimatedCompletion: Date
   },
   skillProgressTracker: {
-    completedModules: Array,
+    completedModules: Array, // Tracked in backend
     currentProficiency: Object,
-    projectedReadiness: Number
+    projectedReadiness: Number,
+    versionHistory: Array // Full skill evolution
   },
   metadata: {
     version: String,
@@ -216,12 +225,12 @@ mongod --dbpath /path/to/your/db
 ### Step 3: Analysis Dashboard
 - **Skill Radar Chart**: Visual proficiency mapping
 - **Gap Analysis Table**: Prioritized skill deficiencies
-- **Remediation Timeline**: Personalized learning pathway
-- **Progress Tracking**: Real-time improvement metrics
+- **Remediation Timeline**: Personalized learning pathway (with 'Learn More' links)
+- **Progress Tracking**: Real-time improvement metrics (backend-tracked)
 
 ### Step 4: Remediation Execution
-- Follow recommended learning modules
-- Track progress through integrated dashboard
+- Follow recommended learning modules (each with actionable content and external resource link)
+- Mark modules as complete (progress tracked in backend)
 - Receive updated skill assessments
 - Monitor career readiness score
 
@@ -248,6 +257,18 @@ Content-Type: application/json
 GET /api/skillgap/progress/:userId
 ```
 
+#### Mark Module as Complete
+```bash
+POST /api/skillgap/mark-module-complete
+Content-Type: application/json
+
+{
+  "userId": "string",
+  "moduleId": "string",
+  "skill": "string"
+}
+```
+
 #### Historical Data
 ```bash
 GET /api/skillgap/history/:userId
@@ -272,6 +293,10 @@ const lmsConnectors = {
 - **Trend Analysis**: Skill demand evolution
 - **Predictive Modeling**: Career outcome predictions
 - **Institutional Dashboard**: Program effectiveness metrics
+
+### 🌐 Resource Provider Extensions
+- Add more resource providers (e.g., YouTube, Coursera, custom docs) by extending the `get_top_tavily_link` logic in the backend.
+- Fallback to Google search links if Tavily is unavailable.
 
 ### 🎯 Role Expansion
 ```python
