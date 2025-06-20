@@ -1,0 +1,27 @@
+graph TD
+    A[Learner Data (Code, Quizzes, Feedback)] --> B[Frontend Upload UI]
+    B --> C[Node.js Backend API]
+    C --> D[Python FastAPI Multi-Agent Pipeline]
+    D --> E[MongoDB Storage]
+    E --> F[Frontend Dashboard Visualization]
+
+    subgraph "Multi-Agent Pipeline"
+        D1[Skill Signal Aggregator Agent]
+        D2[Industry Role Analyzer Agent (RAG)]
+        D3[Deficiency Classifier Agent]
+        D4[Remediation Planner Agent]
+        D5[Skill Progress Tracker Agent]
+    end
+
+    D --> D1 --> D2 --> D3 --> D4 --> D5
+
+    F -->|Displays| G1[Skill Radar Chart]
+    F -->|Displays| G2[Deficiency Dashboard]
+    F -->|Displays| G3[Remediation Progress View]
+
+    style D1 fill:#e0f2fe,stroke:#2563eb,stroke-width:2px
+    style D2 fill:#fef9c3,stroke:#f59e42,stroke-width:2px
+    style D3 fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+    style D4 fill:#d1fae5,stroke:#059669,stroke-width:2px
+    style D5 fill:#ede9fe,stroke:#7c3aed,stroke-width:2px
+    style F fill:#f1f5f9,stroke:#2563eb,stroke-width:2px
