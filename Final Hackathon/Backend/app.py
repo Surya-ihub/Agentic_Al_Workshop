@@ -14,12 +14,14 @@ from datetime import datetime, timedelta
 import pickle
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+import time
 # Set API keys
 load_dotenv()  # Load .env file
 
 # Access the variables
 google_api_key = os.getenv("GOOGLE_API_KEY")
 tavily_api_key = os.getenv("TAVILY_API_KEY")
+print(tavily_api_key, 24)
 
 # Optionally set them globally if needed
 os.environ["GOOGLE_API_KEY"] = google_api_key
@@ -779,6 +781,34 @@ def deficiency_classifier_agent(learner_skill_graph: dict, role_skills: dict) ->
     }
 
 # --- Remediation Planner Agent ---
+def get_top_tavily_link(skill, retries=2):
+    tavily_api_key = os.environ.get("TAVILY_API_KEY")
+    if not tavily_api_key:
+        return ""
+    url = "https://api.tavily.com/search"
+    payload = {
+        "api_key": tavily_api_key,
+        "query": f"{skill} tutorial for developers",
+        "search_depth": "basic",
+        "include_answer": False,
+        "include_raw_content": False,
+        "max_results": 1,
+        "include_domains": [
+            "mdn.com", "freecodecamp.org", "w3schools.com", "developer.mozilla.org", "geeksforgeeks.org"
+        ]
+    }
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, json=payload, timeout=20)
+            if response.status_code == 200:
+                results = response.json().get("results", [])
+                if results:
+                    return results[0].get("url", "")
+        except Exception as e:
+            print(f"Tavily link fetch error (attempt {attempt+1}): {e}")
+            time.sleep(1)
+    return ""
+
 def remediation_planner_agent(skill_deficiency_report: dict, lms_content_metadata: list = None, target_role: str = "", learner_skill_graph: dict = None) -> dict:
     """
     Maps each deficiency to targeted modules, exercises, or projects from the LMS and generates a timeline-based remediation plan.
@@ -835,13 +865,15 @@ You are an expert instructor. Write a concise, actionable 15-minute learning mod
                 "title": f"{skill.title()} Essentials",
                 "content": f"Learn the basics and practical applications of {skill}."
             }
+        learn_more_url = get_top_tavily_link(skill)
         generated_lms_content.append({
             "skill": skill,
             "module_id": f"mod_{i}",
             "title": module["title"],
             "duration_min": 15,
             "type": "module",
-            "content": module["content"]
+            "content": module["content"],
+            "learn_more_url": learn_more_url
         })
 
     # Use generated content as LMS metadata
