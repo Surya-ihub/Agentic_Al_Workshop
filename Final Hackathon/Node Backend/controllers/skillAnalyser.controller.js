@@ -119,3 +119,41 @@ export const getSkillAnalysis = async (req, res) => {
         return res.status(500).json({ message: "Server error fetching skill analysis" });
     }
 };
+
+export const markAscomplete = async (req, res) => {
+    try {
+        const { userId, moduleId, skill } = req.body;
+        if (!userId || !moduleId) {
+            return res.status(400).json({ message: "userId and moduleId are required" });
+        }
+        const userObjectId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
+        // Find or create the SkillAnalysis record
+        const record = await SkillAnalysis.findOneAndUpdate(
+            { userId: userObjectId },
+            { $setOnInsert: { completedModules: [] } },
+            { upsert: true, new: true }
+        );
+        // Ensure completedModules is always an array
+        if (!Array.isArray(record.completedModules)) {
+            record.completedModules = [];
+        }
+        // Check if already marked complete
+        const alreadyCompleted = record.completedModules.some(m => m.moduleId === moduleId);
+        if (!alreadyCompleted) {
+            // Add to completedModules array
+            record.completedModules.push({
+                moduleId,
+                skill,
+                completedAt: new Date()
+            });
+            await record.save();
+        }
+        return res.status(200).json({
+            success: true,
+            completedModules: record.completedModules
+        });
+    } catch (error) {
+        console.error("❌ Error marking module as complete:", error.message);
+        return res.status(500).json({ message: "Server error marking module as complete" });
+    }
+}

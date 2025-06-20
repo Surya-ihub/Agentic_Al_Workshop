@@ -1,227 +1,3 @@
-// import axios from "axios";
-// import React, { useState } from "react";
-// import { fetchSkillAnalysis } from "../../services/apiService";
-// import {
-//   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend,
-// } from "recharts";
-
-// export default function SkillSignalUploader() {
-//   const [jobRole, setJobRole] = useState("");
-//   const [jsonData, setJsonData] = useState(null);
-//   const [error, setError] = useState("");
-//   const [success, setSuccess] = useState("");
-//   const [analysisData, setAnalysisData] = useState(null);
-
-//   const handleFileUpload = (e) => {
-//     const file = e.target.files[0];
-//     if (!file) return;
-
-//     const reader = new FileReader();
-//     reader.onload = (event) => {
-//       try {
-//         const parsed = JSON.parse(event.target.result);
-//         setJsonData(parsed);
-//         setError("");
-//         setSuccess("");
-//       } catch (err) {
-//         setError("Invalid JSON file.");
-//         setJsonData(null);
-//         setSuccess("");
-//       }
-//     };
-//     reader.readAsText(file);
-//   };
-
-//   const handleRoleChange = (e) => {
-//     setJobRole(e.target.value);
-//     setSuccess("");
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     if (!jsonData) {
-//       setError("Please upload a valid JSON file.");
-//       return;
-//     }
-//     if (!jobRole) {
-//       setError("Please select a job role.");
-//       return;
-//     }
-
-//     const userId = localStorage.getItem("userId")
-//     if (!userId) {
-//       setError("JSON file must include 'userId' field.");
-//       return;
-//     }
-
-//     try {
-//       const res = await axios.post(`http://localhost:5000/api/skillgap/data/${userId}`, {
-//         jobRole,
-//         data: jsonData,
-//       });
-
-//       setError("");
-//       setSuccess("Data submitted successfully!");
-
-//       // Use the new response structure directly
-//       setAnalysisData(res.data);
-//     } catch (err) {
-//       console.error(err);
-//       setError("Failed to submit data.");
-//       setSuccess("");
-//     }
-//   };
-
-//   // Helper: Format radar chart data
-//   const getRadarData = () => {
-//     if (!analysisData?.skillProgressTracker?.radar_chart_data) return [];
-//     return analysisData.skillProgressTracker.radar_chart_data.map((item) => ({
-//       skill: item.skill,
-//       level: item.level_num,
-//     }));
-//   };
-
-//   // Helper: Deficiency dashboard rows
-//   const getDeficiencyRows = () => {
-//     const gapReport = analysisData?.skillProgressTracker?.gap_report || analysisData?.skillGapAnalysis?.gap_report || [];
-//     return gapReport.length ? gapReport : (analysisData?.skillGapAnalysis?.missing_core_skills || []).map(skill => ({ skill, type: "core" }));
-//   };
-
-//   // Helper: Remediation plan rows
-//   const getRemediationRows = () => {
-//     const roadmap = analysisData?.remediationPlan?.remediation_roadmap || analysisData?.remediation_roadmap || [];
-//     return roadmap;
-//   };
-
-//   return (
-//     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-100">
-//       <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-4xl">
-//         {/* Upload Interface */}
-//         <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">
-//           Agentic Skill Deficiency Auditor
-//         </h1>
-//         <div className="mb-8 border-b pb-6">
-//           <h2 className="text-xl font-semibold mb-4 text-blue-900">Upload Learner Data & Select Job Role</h2>
-//           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-//             <div>
-//               <label className="block mb-1 font-medium">Upload JSON File</label>
-//               <input
-//                 type="file"
-//                 accept=".json"
-//                 onChange={handleFileUpload}
-//                 className="border border-gray-300 p-2 rounded w-full"
-//               />
-//             </div>
-//             <div>
-//               <label className="block mb-1 font-medium">Select Job Role</label>
-//               <select
-//                 value={jobRole}
-//                 onChange={handleRoleChange}
-//                 className="border border-gray-300 p-2 rounded w-full"
-//               >
-//                 <option value="">-- Select Role --</option>
-//                 <option value="frontend">Frontend</option>
-//                 <option value="backend">Backend</option>
-//               </select>
-//             </div>
-//             {error && <p className="text-red-500 mb-2">{error}</p>}
-//             {success && <p className="text-green-600 mb-2">{success}</p>}
-//             <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full font-semibold">
-//               Submit
-//             </button>
-//           </form>
-//         </div>
-
-//         {/* Skill Radar Chart */}
-//         {analysisData?.skillProgressTracker?.radar_chart_data && (
-//           <div className="mt-8 border-b pb-8">
-//             <h2 className="text-xl font-bold mb-4 text-blue-800 text-center">Skill Radar Chart</h2>
-//             <div className="flex flex-col items-center">
-//               <ResponsiveContainer width="100%" minWidth={350} height={400}>
-//                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={getRadarData()}>
-//                   <PolarGrid stroke="#e5e7eb" />
-//                   <PolarAngleAxis dataKey="skill" tick={{ fontSize: 13, fill: '#1e293b' }} />
-//                   <PolarRadiusAxis angle={30} domain={[0, 4]} tickCount={5} tickFormatter={v => ['Novice','Beginner','Intermediate','Proficient','Advanced'][v] || v} />
-//                   <Radar name="Skill Level" dataKey="level" stroke="#2563eb" fill="#60a5fa" fillOpacity={0.7} />
-//                   <Tooltip formatter={(value) => [value, "Level"]} />
-//                   <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ color: '#2563eb' }} />
-//                 </RadarChart>
-//               </ResponsiveContainer>
-//               <div className="mt-2 text-xs text-gray-500">Level: 0=Novice, 1=Beginner, 2=Intermediate, 3=Proficient, 4=Advanced</div>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Deficiency Dashboard */}
-//         {getDeficiencyRows().length > 0 && (
-//           <div className="mt-8 border-b pb-8">
-//             <h2 className="text-xl font-bold mb-4 text-red-800 text-center">Deficiency Dashboard</h2>
-//             <div className="overflow-x-auto">
-//               <table className="min-w-full bg-white border border-gray-200 rounded">
-//                 <thead>
-//                   <tr>
-//                     <th className="px-3 py-2 border-b">Skill</th>
-//                     <th className="px-3 py-2 border-b">Type</th>
-//                     <th className="px-3 py-2 border-b">Urgency</th>
-//                     <th className="px-3 py-2 border-b">Impact</th>
-//                     <th className="px-3 py-2 border-b">Reason</th>
-//                   </tr>
-//                 </thead>
-//                 <tbody>
-//                   {getDeficiencyRows().map((row, idx) => (
-//                     <tr key={idx} className="text-sm">
-//                       <td className="px-3 py-2 border-b">{row.skill}</td>
-//                       <td className="px-3 py-2 border-b">{row.type}</td>
-//                       <td className="px-3 py-2 border-b">{row.urgency || '-'}</td>
-//                       <td className="px-3 py-2 border-b">{row.career_impact || '-'}</td>
-//                       <td className="px-3 py-2 border-b">{row.reason || '-'}</td>
-//                     </tr>
-//                   ))}
-//                 </tbody>
-//               </table>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Remediation Progress View */}
-//         {getRemediationRows().length > 0 && (
-//           <div className="mt-8">
-//             <h2 className="text-xl font-bold mb-4 text-green-800 text-center">Remediation Progress</h2>
-//             <div className="overflow-x-auto">
-//               <table className="min-w-full bg-white border border-gray-200 rounded">
-//                 <thead>
-//                   <tr>
-//                     <th className="px-3 py-2 border-b">Day</th>
-//                     <th className="px-3 py-2 border-b">Modules</th>
-//                   </tr>
-//                 </thead>
-//                 <tbody>
-//                   {getRemediationRows().map((day, idx) => (
-//                     <tr key={idx} className="text-sm">
-//                       <td className="px-3 py-2 border-b font-bold text-blue-700">{day.day}</td>
-//                       <td className="px-3 py-2 border-b">
-//                         <ul className="list-disc ml-4">
-//                           {day.modules.map((mod, i) => (
-//                             <li key={i}>
-//                               <span className="font-semibold text-blue-900">{mod.title}</span> <span className="text-gray-700">({mod.skill}, {mod.duration_min} min)</span>
-//                             </li>
-//                           ))}
-//                         </ul>
-//                       </td>
-//                     </tr>
-//                   ))}
-//                 </tbody>
-//               </table>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-
 import axios from "axios";
 import React, { useState } from "react";
 import { fetchSkillAnalysis } from "../../services/apiService";
@@ -236,6 +12,8 @@ export default function SkillSignalUploader() {
   const [success, setSuccess] = useState("");
   const [analysisData, setAnalysisData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Track completed modules (no localStorage)
+  const [completedModules, setCompletedModules] = useState([]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -320,6 +98,23 @@ export default function SkillSignalUploader() {
   const getRemediationRows = () => {
     const roadmap = analysisData?.remediationPlan?.remediation_roadmap || analysisData?.remediation_roadmap || [];
     return roadmap;
+  };
+
+  const handleMarkComplete = async (mod) => {
+    if (completedModules.includes(mod.module_id)) return;
+    const updated = [...completedModules, mod.module_id];
+    setCompletedModules(updated);
+    // Optionally, send to backend
+    try {
+      const userId = localStorage.getItem("userId");
+      await axios.post("http://localhost:5000/api/skillgap/mark-module-complete", {
+        userId,
+        moduleId: mod.module_id,
+        skill: mod.skill,
+      });
+    } catch (err) {
+      // Optionally handle error
+    }
   };
 
   return (
@@ -476,7 +271,11 @@ export default function SkillSignalUploader() {
                   
                   <div className="grid gap-3 ml-11">
                     {day.modules.map((mod, i) => (
-                      <div key={i} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 transition-colors duration-150">
+                      <div key={i} className={`bg-white rounded-lg p-3 border transition-colors duration-150 ${
+                        completedModules.includes(mod.module_id)
+                          ? 'border-green-400 bg-green-50 opacity-60'
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="font-semibold text-blue-900 mb-1">{mod.title}</h4>
@@ -494,8 +293,25 @@ export default function SkillSignalUploader() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
-                            {/* <div className="w-4 h-4 border-2 border-gray-300 rounded hover:border-green-500 cursor-pointer transition-colors duration-150"></div>
-                            <span className="text-xs text-gray-400">Mark Complete</span> */}
+                            <button
+                              className={`w-4 h-4 border-2 rounded transition-colors duration-150 flex items-center justify-center ${
+                                completedModules.includes(mod.module_id)
+                                  ? 'border-green-500 bg-green-400'
+                                  : 'border-gray-300 hover:border-green-500'
+                              }`}
+                              onClick={() => handleMarkComplete(mod)}
+                              disabled={completedModules.includes(mod.module_id)}
+                              title={completedModules.includes(mod.module_id) ? 'Completed' : 'Mark Complete'}
+                            >
+                              {completedModules.includes(mod.module_id) && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                            <span className={`text-xs ${completedModules.includes(mod.module_id) ? 'text-green-600' : 'text-gray-400'}`}>
+                              {completedModules.includes(mod.module_id) ? 'Completed' : 'Mark Complete'}
+                            </span>
                           </div>
                         </div>
                       </div>

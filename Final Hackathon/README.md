@@ -11,6 +11,9 @@
 An end-to-end, agentic AI-powered system that audits learner competencies against real-world job market demands, identifies critical skill gaps, and provides personalized remediation pathways to ensure true career readiness beyond traditional course completion.
 
 ## 🌟 Key Features
+Flow
+
+![Alt Text](./Flowchart.png)
 
 ### 🤖 Multi-Agent Intelligence Pipeline
 - **5 Specialized AI Agents** working in harmony to provide comprehensive skill analysis

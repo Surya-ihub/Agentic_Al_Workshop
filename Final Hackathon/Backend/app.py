@@ -187,30 +187,46 @@ Raw Content:
         return False
 
 def rag_retrieve_job_requirements(role: str, query: str = None, top_k: int = 10) -> List[Dict]:
-    """Retrieve relevant job requirements using RAG"""
+    """Retrieve relevant job requirements using RAG with LLM-based re-ranking"""
     global vector_db
     try:
         if vector_db is None:
             return []
-        
         # Default query if not provided
         if not query:
             query = f"job requirements skills experience qualifications for {role} developer position"
-        
-        # Retrieve relevant documents
-        docs = vector_db.similarity_search(query, k=top_k)
-        
+        # Retrieve more docs than needed for re-ranking
+        docs = vector_db.similarity_search(query, k=20)
+        # LLM-based re-ranking
+        def rerank_with_llm(query, docs, top_k=10):
+            doc_texts = "\n\n".join([f"Doc {i+1}: {doc.page_content[:500]}" for i, doc in enumerate(docs)])
+            prompt = (
+                f"You are an expert at ranking job requirement documents for relevance. "
+                f"Given the following query and a list of job requirement documents, "
+                f"return a Python list of the indices (0-based) of the top {top_k} most relevant documents, sorted from most to least relevant.\n"
+                f"Query: {query}\n\n"
+                f"Documents:\n{doc_texts}\n\n"
+                f"Return only the list of indices."
+            )
+            try:
+                indices_str = llm.invoke(prompt)
+                import ast
+                indices = ast.literal_eval(indices_str)
+                if not isinstance(indices, list):
+                    indices = list(range(min(top_k, len(docs))))
+            except Exception:
+                indices = list(range(min(top_k, len(docs))))
+            return [docs[i] for i in indices if i < len(docs)]
+        final_docs = rerank_with_llm(query, docs, top_k=top_k)
         # Format results
         rag_results = []
-        for doc in docs:
+        for doc in final_docs:
             rag_results.append({
                 "content": doc.page_content,
                 "metadata": doc.metadata,
-                "relevance": "high"  # FAISS doesn't return scores by default
+                "relevance": "high"  # LLM re-ranked
             })
-        
         return rag_results
-        
     except Exception as e:
         print(f"❌ Error in RAG retrieval: {e}")
         return []
@@ -586,7 +602,7 @@ async def receive_skill_data(user_id: str, request: Request):
             {"skill": k, "module_id": f"mod_{i}", "title": f"{k.title()} Basics", "duration_min": 15, "type": "module"}
             for i, k in enumerate(deficiency_report.get("missing_core_skills", []) + deficiency_report.get("missing_optional_skills", []))
         ]
-        remediation_plan = remediation_planner_agent(deficiency_report, lms_content_metadata, target_role=role)
+        remediation_plan = remediation_planner_agent(deficiency_report, lms_content_metadata, target_role=role, learner_skill_graph=learner_skill_graph)
 
         # Add remediation plan (with ETA and module duration check) to response
         frontend_response["remediationPlan"] = {
@@ -763,98 +779,142 @@ def deficiency_classifier_agent(learner_skill_graph: dict, role_skills: dict) ->
     }
 
 # --- Remediation Planner Agent ---
-def remediation_planner_agent(skill_deficiency_report: dict, lms_content_metadata: list, target_role: str = "") -> dict:
+def remediation_planner_agent(skill_deficiency_report: dict, lms_content_metadata: list = None, target_role: str = "", learner_skill_graph: dict = None) -> dict:
     """
     Maps each deficiency to targeted modules, exercises, or projects from the LMS and generates a timeline-based remediation plan.
-    Input:
-        skill_deficiency_report: Output from deficiency_classifier_agent
-        lms_content_metadata: List of dicts, each with at least {"skill", "module_id", "title", "duration_min", "type"}
-        target_role: (Optional) Used for ETA phrasing
-    Output:
-        Personalized remediation roadmap
+    Uses LLM to generate the plan, ensuring modules are 15 min and acceptance criteria are met.
+    For each missing skill AND each skill with a low score, generates a 15-min learning module summary using the LLM.
     """
-    from datetime import timedelta
     import math
-
+    import json
     # Helper: Normalize skill names
     def normalize(skill):
         import re
         return re.sub(r"[^a-z0-9]+", "", skill.lower())
 
-    # Extract gaps
+    # --- Collect missing and low-score skills ---
     gaps = skill_deficiency_report.get("gap_report", [])
     gap_skills = [g["skill"] for g in gaps if g["type"] in ("core", "optional", "emerging")]
     gap_types = {g["skill"]: g["type"] for g in gaps}
+    low_score_skills = []
+    if learner_skill_graph:
+        # Consider 'novice' or 'beginner' as low
+        for skill, level in learner_skill_graph.items():
+            if str(level).lower() in ["novice", "beginner"]:
+                low_score_skills.append(skill)
+    # Merge and deduplicate
+    all_target_skills = list({normalize(s): s for s in (gap_skills + low_score_skills)}.values())
 
-    # Normalize LMS content for matching
-    lms_by_skill = {}
-    for item in lms_content_metadata:
-        skill_norm = normalize(item.get("skill", ""))
-        if skill_norm:
-            lms_by_skill.setdefault(skill_norm, []).append(item)
+    generated_lms_content = []
+    for i, skill in enumerate(all_target_skills):
+        content_prompt = f"""
+You are an expert instructor. Write a concise, actionable 15-minute learning module for the skill '{skill}'.
+- Audience: intermediate developer
+- Output: Return a Python dictionary with exactly two keys: 'title' (max 8 words) and 'content' (a 5-min read, clear, step-by-step, practical, with examples or exercises if possible, max 150 words).
+- Example output: {{'title': 'title name', 'content': 'This module covers...'}}
+"""
+        try:
+            llm_content = llm.invoke(content_prompt)
+            print(llm_content, 817)
+            import ast
+            # Try to parse as dict
+            try:
+                module = ast.literal_eval(llm_content)
+                print(module, 821)
+                if not isinstance(module, dict) or "title" not in module or "content" not in module:
+                    raise ValueError("LLM output invalid")
+            except Exception:
+                # If not a dict, treat the whole output as content
+                module = {
+                    "title": f"{skill.title()} Essentials",
+                    "content": llm_content.strip()  # Use the full LLM output as content
+                }
+        except Exception:
+            # As a last resort, use a generic fallback
+            module = {
+                "title": f"{skill.title()} Essentials",
+                "content": f"Learn the basics and practical applications of {skill}."
+            }
+        generated_lms_content.append({
+            "skill": skill,
+            "module_id": f"mod_{i}",
+            "title": module["title"],
+            "duration_min": 15,
+            "type": "module",
+            "content": module["content"]
+        })
 
-    # Map gaps to LMS content
-    mapped_content = []
-    unmapped_gaps = []
-    total_gaps = len(gap_skills)
-    for skill in gap_skills:
-        skill_norm = normalize(skill)
-        modules = lms_by_skill.get(skill_norm, [])
-        # Only include modules <20 min
-        modules = [m for m in modules if m.get("duration_min", 999) < 20]
-        if modules:
-            for m in modules:
-                mapped_content.append({
-                    "skill": skill,
-                    "type": gap_types.get(skill, "core"),
-                    "module_id": m.get("module_id"),
-                    "title": m.get("title"),
-                    "duration_min": m.get("duration_min"),
-                    "content_type": m.get("type", "module")
-                })
-        else:
-            unmapped_gaps.append(skill)
+    # Use generated content as LMS metadata
+    lms_content_metadata = generated_lms_content
 
-    # Calculate mapping coverage
-    unique_mapped_skills = set([normalize(m["skill"]) for m in mapped_content])
-    mapping_coverage = len(unique_mapped_skills) / total_gaps if total_gaps else 1.0
+    # Prepare LLM prompt for remediation plan
+    remediation_prompt = f"""
+You are a Remediation Planner Agent. Your job is to map each skill gap to a learning module from the LMS and generate a timeline-based remediation plan.
 
-    # Timeline plan: group modules into days (assume 60 min/day learning)
-    mapped_content_sorted = sorted(mapped_content, key=lambda x: (x["type"], -x["duration_min"]))
-    plan = []
-    day = 1
-    day_time = 0
-    daily_plan = []
-    for m in mapped_content_sorted:
-        if day_time + m["duration_min"] > 60 and daily_plan:
+Acceptance Criteria:
+- Map at least 80% of skill gaps to actionable content.
+- All remediation modules are 15 minutes each.
+- Generate an ETA to career alignment (e.g., '3 weeks to {target_role or 'career alignment'}').
+- Each day should have at most 60 min of modules.
+
+Skill Deficiency Report:
+{json.dumps(skill_deficiency_report, indent=2)}
+
+LMS Content Metadata (all modules are 15 min, with content):
+{json.dumps(lms_content_metadata, indent=2)}
+
+Return a Python dictionary with:
+- remediation_roadmap: list of days, each with modules (max 60 min/day, include module_id, title, and content)
+- eta_days, eta_weeks, eta_string
+- mapping_coverage (fraction of gaps mapped)
+- meets_coverage (True if >= 0.8)
+- allModulesUnder20Min (should be True)
+"""
+    try:
+        llm_response = llm.invoke(remediation_prompt)
+        import ast
+        plan = ast.literal_eval(llm_response)
+        # Validate output
+        if not isinstance(plan, dict) or "remediation_roadmap" not in plan:
+            raise ValueError("LLM output invalid")
+        return plan
+    except Exception as e:
+        # Fallback to previous logic if LLM fails
+        mapped_content_sorted = sorted(lms_content_metadata, key=lambda x: (gap_types.get(x["skill"], "core"), -x["duration_min"]))
+        plan = []
+        day = 1
+        day_time = 0
+        daily_plan = []
+        for m in mapped_content_sorted:
+            if day_time + m["duration_min"] > 60 and daily_plan:
+                plan.append({"day": day, "modules": daily_plan})
+                day += 1
+                day_time = 0
+                daily_plan = []
+            daily_plan.append(m)
+            day_time += m["duration_min"]
+        if daily_plan:
             plan.append({"day": day, "modules": daily_plan})
-            day += 1
-            day_time = 0
-            daily_plan = []
-        daily_plan.append(m)
-        day_time += m["duration_min"]
-    if daily_plan:
-        plan.append({"day": day, "modules": daily_plan})
-
-    # ETA calculation
-    eta_days = len(plan)
-    eta_weeks = math.ceil(eta_days / 5)  # Assume 5 learning days/week
-    eta_str = f"{eta_weeks} week{'s' if eta_weeks > 1 else ''} to {target_role or 'career alignment'}"
-
-    return {
-        "remediation_roadmap": plan,
-        "eta_days": eta_days,
-        "eta_weeks": eta_weeks,
-        "eta_string": eta_str,
-        "mapping_coverage": round(mapping_coverage, 2),
-        "unmapped_gaps": unmapped_gaps,
-        "modules_per_gap": mapped_content,
-        "criteria": {
-            "min_coverage": 0.8,
-            "max_module_duration_min": 20
-        },
-        "meets_coverage": mapping_coverage >= 0.8
-    }
+        # ETA calculation
+        eta_days = len(plan)
+        eta_weeks = math.ceil(eta_days / 5)  # Assume 5 learning days/week
+        eta_str = f"{eta_weeks} week{'s' if eta_weeks > 1 else ''} to {target_role or 'career alignment'}"
+        mapping_coverage = len(all_target_skills) / len(all_target_skills) if all_target_skills else 1.0
+        return {
+            "remediation_roadmap": plan,
+            "eta_days": eta_days,
+            "eta_weeks": eta_weeks,
+            "eta_string": eta_str,
+            "mapping_coverage": round(mapping_coverage, 2),
+            "unmapped_gaps": [],
+            "modules_per_gap": lms_content_metadata,
+            "criteria": {
+                "min_coverage": 0.8,
+                "max_module_duration_min": 20
+            },
+            "meets_coverage": mapping_coverage >= 0.8,
+            "allModulesUnder20Min": all(m.get("duration_min", 999) < 20 for m in lms_content_metadata)
+        }
 
 # --- Skill Progress Tracker Agent ---
 def skill_progress_tracker_agent(post_remediation_performance: dict, original_skill_graph: dict, version_history: list = None) -> dict:
