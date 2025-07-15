@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+langchain
+langchain-google-genai
+langchain-community
+python-tavily
+requests
+faiss-cpu
+pydantic
+tqdm
+numpy
+typing-extensions

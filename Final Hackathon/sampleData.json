@@ -1,0 +1,122 @@
+{
+  "user_id": "react_learner_456",
+  "code_attempts": [
+    {
+      "exercise_id": "react-state-101",
+      "code": "import React, { useState } from 'react';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  \n  const increment = () => {\n    setCount(count + 1);\n  };\n\n  return (\n    <div>\n      <p>Count: {count}</p>\n      <button onClick={increment}>Increment</button>\n    </div>\n  );\n}",
+      "submission_time": "2025-06-15T09:30:00Z",
+      "result": {
+        "passed_tests": 4,
+        "failed_tests": 0,
+        "warnings": ["Missing useEffect cleanup"]
+      }
+    },
+    {
+      "exercise_id": "react-hooks-201",
+      "code": "import React, { useEffect } from 'react';\n\nfunction DataFetcher() {\n  const [data, setData] = useState(null);\n\n  useEffect(() => {\n    fetch('https://api.example.com/data')\n      .then(res => res.json())\n      .then(data => setData(data));\n  }, []);\n\n  return (\n    <div>\n      {data ? <pre>{JSON.stringify(data)}</pre> : 'Loading...'}\n    </div>\n  );\n}",
+      "submission_time": "2025-06-18T14:22:00Z",
+      "result": {
+        "passed_tests": 3,
+        "failed_tests": 2,
+        "errors": ["Memory leak: No cleanup function", "No error handling"]
+      }
+    }
+  ],
+  "project_submissions": [
+    {
+      "project_id": "ecommerce-cart",
+      "repo_url": "https://github.com/react_learner_456/ecom-cart",
+      "rubric": {
+        "component_design": 4,
+        "state_management": 3,
+        "responsive_design": 5,
+        "comments": "Excellent UI but Redux implementation needs optimization. Mobile layout is perfect."
+      }
+    },
+    {
+      "project_id": "todo-context-api",
+      "repo_url": "https://github.com/react_learner_456/todo-context",
+      "rubric": {
+        "context_usage": 2,
+        "performance": 3,
+        "testing": 1,
+        "comments": "Context structure needs refactoring. No test coverage."
+      }
+    }
+  ],
+  "quiz_scores": [
+    {
+      "quiz_id": "react-fundamentals",
+      "score": 92,
+      "max_score": 100,
+      "weak_areas": ["Lifecycle methods", "Virtual DOM details"]
+    },
+    {
+      "quiz_id": "react-hooks-advanced",
+      "score": 68,
+      "max_score": 100,
+      "weak_areas": ["useReducer patterns", "Custom hooks"]
+    }
+  ],
+  "quiz_scores_by_topic": {
+    "ReactJS": {
+      "react-fundamentals": {
+        "score": 92,
+        "max_score": 100,
+        "weak_areas": ["Lifecycle methods", "Virtual DOM details"]
+      },
+      "react-hooks-advanced": {
+        "score": 68,
+        "max_score": 100,
+        "weak_areas": ["useReducer patterns", "Custom hooks"]
+      }
+    },
+    "Hooks": {
+      "react-hooks-advanced": {
+        "score": 68,
+        "max_score": 100,
+        "weak_areas": ["useReducer patterns", "Custom hooks"]
+      }
+    },
+    "JSX": {
+      "react-fundamentals": {
+        "score": 92,
+        "max_score": 100,
+        "weak_areas": ["Virtual DOM details"]
+      }
+    }
+  },
+  "peer_reviews": [
+    {
+      "reviewer_id": "peer_789",
+      "project_id": "ecommerce-cart",
+      "feedback": "Great component composition! But the cart state logic gets messy in Checkout.js. Consider abstracting reducers.",
+      "ratings": {
+        "code_quality": 4,
+        "ux_implementation": 5
+      }
+    },
+    {
+      "reviewer_id": "peer_101",
+      "project_id": "todo-context-api",
+      "feedback": "Avoided prop drilling well, but context updates cause unnecessary re-renders. Memoization needed!",
+      "ratings": {
+        "code_quality": 2,
+        "performance": 3
+      }
+    }
+  ],
+  "mentor_evaluations": [
+    {
+      "mentor_id": "react_expert_007",
+      "date": "2025-06-20",
+      "technical_assessment": {
+        "react_fundamentals": "Advanced",
+        "hooks": "Intermediate",
+        "state_management": "Beginner+",
+        "testing": "Novice"
+      },
+      "growth_areas": ["Redux middleware", "React Testing Library", "Performance optimization"]
+    }
+  ]
+}
