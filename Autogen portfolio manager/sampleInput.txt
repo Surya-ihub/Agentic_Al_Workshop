@@ -1,0 +1,12 @@
+Annual Salary (₹)= 1800000
+Your Age=22
+Annual Expenses (₹)=600000
+Financial Goals=I want to retire by age 55, buy a second home in 10 years, and fund my child’s higher education in 15 years.
+Risk Tolerance=Moderate
+Mutual Funds (Name + Type + Amount)=Axis Bluechip Fund - Equity - ₹2,00,000
+HDFC Hybrid Equity Fund - Hybrid - ₹1,00,000
+Stocks (Name + Qty + Buy Price)=Tata Consultancy Services (TCS) - 10 shares - ₹3300
+Infosys - 15 shares - ₹1500
+HDFC Bank - 20 shares - ₹1600
+Real Estate (Type + Location + Value)=2BHK Apartment - Pune - ₹50,00,000 - Rented (₹15,000/month)
+Fixed Deposit (Total ₹)=500000
