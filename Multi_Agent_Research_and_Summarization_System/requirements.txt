@@ -1,0 +1,11 @@
+streamlit
+langchain>=0.2.0
+langgraph>=0.0.30
+langchain-google-genai
+langchain-community
+google-generativeai
+faiss-cpu
+pdfplumber
+python-docx
+tqdm
+duckduckgo-search

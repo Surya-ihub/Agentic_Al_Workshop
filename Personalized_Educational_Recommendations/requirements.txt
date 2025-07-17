@@ -1,0 +1,7 @@
+streamlit
+serper
+python-dotenv
+devtools
+google-generativeai
+crewai
+pydantic
