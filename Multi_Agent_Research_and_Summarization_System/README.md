@@ -156,11 +156,4 @@ streamlit run app.py
 * PDF OCR (scanned documents)
 * Chat-style interface
 
----
 
-## 👤 Author
-
-Built by **Vigneshwaran A SNSIHUB**
-Powered by OpenAI, LangGraph, Google Generative AI, and Streamlit
-
----
