@@ -102,4 +102,3 @@ Output:
 
 Built using ✨ Streamlit + AutoGen + Gemini 1.5 Flash.
 
-**Author:** NITHISH KUMAR R
