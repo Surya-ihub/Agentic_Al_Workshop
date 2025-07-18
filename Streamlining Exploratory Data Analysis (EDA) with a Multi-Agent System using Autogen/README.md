@@ -132,12 +132,4 @@ pip install -r requirements.txt
 
 This project is licensed under the [MIT License](LICENSE).
 
----
-
-## 🙋‍♂️ Author
-
-Developed by **Vigneshwaran A @ SNSIHUB**
-For educational and experimental use with LLM + RAG-based data analysis pipelines.
-
----
 
