@@ -1,51 +1,38 @@
 import streamlit as st
 from crewai import Agent, Task, Crew, Process, LLM
-# from langchain_community.llms import Groq
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 import ast
 
-# ===== 100% ONNX-FREE SOLUTION =====
-# No chromadb, no CodeInterpreterTool, no ONNX runtime
+# Set Google API Key
+os.environ["GOOGLE_API_KEY"] = "AIzaSyAC1wHxDXyDGPdBfMvD6H76iA0L7cS7iU8"
 
-# Set API keys (replace with yours)
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAZtErluhP9-PX-Wd29D_QDWRG7V3xj6io"
-
-# Custom Python Analyzer (No ONNX)
+# ----- Static Analysis Function -----
 def analyze_python_code(code: str) -> str:
-    """Static analysis without executing code."""
     try:
-        # 1. Check syntax via AST
         tree = ast.parse(code)
-        
-        # 2. Basic checks
         issues = []
-        
-        # Check for print statements (not recommended in production)
+
         if any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'print' 
                for node in ast.walk(tree)):
             issues.append("⚠️ Found `print()` - Use logging in production.")
 
-        # Check for broad exceptions
         for node in ast.walk(tree):
             if isinstance(node, ast.ExceptHandler) and node.type is None:
                 issues.append("⚠️ Found bare `except:` - Specify exception types.")
 
-        # 3. Return results
-        if issues:
-            return "Found issues:\n" + "\n".join(issues)
-        return "✅ No syntax errors found. Code looks good!"
+        return "✅ No syntax errors found. Code looks good!" if not issues else "Found issues:\n" + "\n".join(issues)
     
     except SyntaxError as e:
         return f"❌ Syntax Error: {e.msg} (Line {e.lineno})"
 
-# Initialize LLM (Groq or Gemini)
-# llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY") , temperature=0.1)  # or ChatGoogleGenerativeAI(model="gemini-pro")
+# ----- LLM Setup -----
 llm = LLM(
     api_key="AIzaSyAZtErluhP9-PX-Wd29D_QDWRG7V3xj6io",
-    model="gemini/gemini-2.5-flash"  # Must include provider prefix
+    model="gemini/gemini-2.5-flash"
 )
-# ===== Agents =====
+
+# ----- Agents -----
 code_analyzer = Agent(
     role="Python Static Analyzer",
     goal="Find issues in Python code WITHOUT executing it",
@@ -70,23 +57,29 @@ manager = Agent(
     verbose=True
 )
 
-# ===== Streamlit UI =====
-st.title("🔍 Python Code Reviewer (No ONNX)")
-code_input = st.text_area("Paste Python code:", height=300)
+# ----- Streamlit UI -----
+st.set_page_config(page_title="Python Code Reviewer", page_icon="🐍", layout="centered")
+st.title("🐍 AI-Powered Python Code Reviewer")
+st.markdown("Analyze and fix your Python code using AI-powered agents without execution.")
 
-if st.button("Analyze & Fix"):
+# Input Section
+with st.expander("📥 Paste Your Python Code", expanded=True):
+    code_input = st.text_area("Write or paste your Python code below:", height=300, placeholder="# Your Python code here...")
+
+# Action
+if st.button("🚀 Analyze & Fix Code"):
     if not code_input.strip():
-        st.warning("Please enter Python code.")
+        st.warning("Please enter Python code to proceed.")
     else:
-        with st.spinner("Analyzing..."):
-            # Task 1: Static Analysis
+        with st.spinner("🤖 Running static analysis and corrections..."):
+
+            # Tasks
             analysis_task = Task(
                 description=f"Analyze this code:\n```python\n{code_input}\n```",
                 agent=code_analyzer,
                 expected_output="List of static analysis issues."
             )
 
-            # Task 2: Fix Code
             correction_task = Task(
                 description="Fix all issues found.",
                 agent=code_corrector,
@@ -94,16 +87,21 @@ if st.button("Analyze & Fix"):
                 context=[analysis_task]
             )
 
-            # Run CrewAI
+            # CrewAI Execution
             crew = Crew(
                 agents=[code_analyzer, code_corrector, manager],
                 tasks=[analysis_task, correction_task],
                 verbose=True,
                 process=Process.sequential
             )
-            
+
             result = crew.kickoff()
-            
-            # Display Results
-            st.subheader("🔧 Fixed Code")
-            st.code(result, language="python")
+
+        # Output Section
+        st.success("✅ Analysis and Fix Completed!")
+        st.subheader("🔍 Code Review Result")
+        st.code(result, language="python")
+
+# Footer
+st.markdown("---")
+st.markdown("💡 _Built using [CrewAI](https://docs.crewai.com) and Gemini for static analysis and code correction._")
